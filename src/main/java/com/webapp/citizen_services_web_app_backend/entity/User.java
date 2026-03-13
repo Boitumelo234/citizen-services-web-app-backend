@@ -20,4 +20,12 @@ public class User {
 
     @Column(nullable = false)
     private String role; // "CITIZEN" or "ADMIN"
+
+    private String phone;
+
+    private String address;
+
+    private String ward;
+
+    private String profileImageUrl;
 }
