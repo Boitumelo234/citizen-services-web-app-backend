@@ -2,6 +2,8 @@ package com.webapp.citizen_services_web_app_backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.util.List;
+import java.util.ArrayList;
 
 @Entity
 @Table(name = "users")
@@ -20,4 +22,8 @@ public class User {
 
     @Column(nullable = false)
     private String role; // "CITIZEN" or "ADMIN"
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Complaint> complaints = new ArrayList<>();
+
 }
