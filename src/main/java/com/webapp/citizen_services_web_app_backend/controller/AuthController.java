@@ -48,7 +48,8 @@ public class AuthController {
         String role = email.equalsIgnoreCase(adminEmail) ? "ADMIN" : "CITIZEN";
 
         User user = new User();
-        user.setEmail(email);
+        user
+                .setEmail(email);
         user.setPassword(passwordEncoder.encode(password));
         user.setRole(role);
 
