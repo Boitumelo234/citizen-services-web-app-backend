@@ -1,9 +1,13 @@
 package com.webapp.citizen_services_web_app_backend.entity;
 
 import jakarta.persistence.*;
+import lombok.*;
+import java.util.List;
+import java.util.ArrayList;
 
 @Entity
 @Table(name = "users")
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
 public class User {
 
     @Id
@@ -30,6 +34,11 @@ public class User {
         this.password = password;
         this.role = role;
     }
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Complaint> complaints = new ArrayList<>();
+
+}
 
     // 🔹 GETTERS
 
