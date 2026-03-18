@@ -49,32 +49,25 @@ public class ComplaintController {
     }
 
     // ── NEW ENDPOINT: Add update/comment to a complaint ──
-    @PostMapping("/{id}/updates")
+    @PostMapping(value = "/{id}/updates", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, String>> addUpdate(
             @PathVariable("id") Long complaintId,
-            @RequestBody Map<String, String> payload,   // e.g. {"comment": "..."}
+            @RequestParam("comment") String comment,
+            @RequestParam(value = "newLocation", required = false) String newLocation,
+            @RequestPart(value = "photo", required = false) MultipartFile photo,
             Authentication authentication) {
 
-        String comment = payload.get("comment");
         if (comment == null || comment.trim().isEmpty()) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", "Comment cannot be empty"));
+            return ResponseEntity.badRequest().body(Map.of("error", "Comment cannot be empty"));
         }
 
         try {
-            // Delegate to service layer (you'll implement this next)
-            complaintService.addComplaintUpdate(complaintId, comment, authentication);
-
-            return ResponseEntity.ok(
-                    Map.of("message", "Update added successfully")
-            );
+            complaintService.addComplaintUpdate(complaintId, comment, newLocation, photo, authentication);
+            return ResponseEntity.ok(Map.of("message", "Update added successfully"));
         } catch (IllegalArgumentException e) {
-            // e.g. complaint not found or not owned by user
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.internalServerError()
-                    .body(Map.of("error", "Failed to add update"));
+            return ResponseEntity.internalServerError().body(Map.of("error", "Failed to add update"));
         }
     }
 }

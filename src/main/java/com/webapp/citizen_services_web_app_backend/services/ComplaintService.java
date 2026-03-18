@@ -2,11 +2,12 @@ package com.webapp.citizen_services_web_app_backend.services;
 
 import com.webapp.citizen_services_web_app_backend.dto.ComplaintRequestDTO;
 import com.webapp.citizen_services_web_app_backend.dto.ComplaintResponseDTO;
+import com.webapp.citizen_services_web_app_backend.dto.ComplaintUpdateDTO;
 import com.webapp.citizen_services_web_app_backend.entity.Complaint;
+import com.webapp.citizen_services_web_app_backend.entity.ComplaintUpdate;
 import com.webapp.citizen_services_web_app_backend.entity.User;
 import com.webapp.citizen_services_web_app_backend.repository.ComplaintRepository;
 import com.webapp.citizen_services_web_app_backend.repository.UserRepository;
-import com.webapp.citizen_services_web_app_backend.services.FileStorageService;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -30,9 +31,7 @@ public class ComplaintService {
         this.fileStorageService = fileStorageService;
     }
 
-    public ComplaintResponseDTO submitComplaint(ComplaintRequestDTO dto,
-                                                MultipartFile photo,
-                                                Authentication authentication) {
+    public ComplaintResponseDTO submitComplaint(ComplaintRequestDTO dto, MultipartFile photo, Authentication authentication) {
         String email = authentication.getName();
         User user = userRepository.findByEmail(email);
         if (user == null) {
@@ -48,15 +47,12 @@ public class ComplaintService {
         complaint.setCreatedAt(LocalDateTime.now());
         complaint.setSubmittedAt(LocalDateTime.now());
 
-        // Save first to generate ID
         Complaint saved = complaintRepository.save(complaint);
 
-        // Handle file upload if present
-        String photoUrl = null;
         if (photo != null && !photo.isEmpty()) {
-            photoUrl = fileStorageService.storeFile(photo, saved.getId());
+            String photoUrl = fileStorageService.storeFile(photo, saved.getId());
             saved.setPhotoUrl(photoUrl);
-            saved = complaintRepository.save(saved); // update with photo URL
+            saved = complaintRepository.save(saved);
         }
 
         return mapToResponseDTO(saved);
@@ -75,6 +71,37 @@ public class ComplaintService {
                 .collect(Collectors.toList());
     }
 
+    public void addComplaintUpdate(Long complaintId, String comment, String newLocation, MultipartFile photo, Authentication authentication) {
+        String email = authentication.getName();
+        User currentUser = userRepository.findByEmail(email);
+        if (currentUser == null) {
+            throw new IllegalArgumentException("User not found");
+        }
+
+        Complaint complaint = complaintRepository.findById(complaintId)
+                .orElseThrow(() -> new IllegalArgumentException("Complaint not found"));
+
+        if (!complaint.getUser().getId().equals(currentUser.getId())) {
+            throw new IllegalArgumentException("You do not own this complaint");
+        }
+
+        ComplaintUpdate update = new ComplaintUpdate();
+        update.setComment(comment.trim());
+        if (newLocation != null && !newLocation.trim().isEmpty()) {
+            update.setNewLocation(newLocation.trim());
+        }
+        update.setUser(currentUser);
+        update.setComplaint(complaint);
+
+        if (photo != null && !photo.isEmpty()) {
+            String photoUrl = fileStorageService.storeFile(photo, complaintId);
+            update.setPhotoUrl(photoUrl);
+        }
+
+        complaint.getUpdates().add(update);
+        complaintRepository.save(complaint);
+    }
+
     private ComplaintResponseDTO mapToResponseDTO(Complaint complaint) {
         ComplaintResponseDTO dto = new ComplaintResponseDTO();
         dto.setId(complaint.getId());
@@ -85,35 +112,21 @@ public class ComplaintService {
         dto.setStatus(complaint.getStatus());
         dto.setCreatedAt(complaint.getCreatedAt());
         dto.setPhotoUrl(complaint.getPhotoUrl());
+
+        dto.setUpdates(complaint.getUpdates().stream()
+                .map(this::mapToUpdateDTO)
+                .collect(Collectors.toList()));
+
         return dto;
     }
 
-    // In ComplaintService.java
-    public void addComplaintUpdate(Long complaintId, String comment, Authentication authentication) {
-        String email = authentication.getName();
-        User currentUser = userRepository.findByEmail(email);
-        if (currentUser == null) {
-            throw new IllegalArgumentException("User not found");
-        }
-
-        Complaint complaint = complaintRepository.findById(complaintId)
-                .orElseThrow(() -> new IllegalArgumentException("Complaint not found"));
-
-        // Security check: only owner can add update
-        if (!complaint.getUser().getId().equals(currentUser.getId())) {
-            throw new IllegalArgumentException("You do not own this complaint");
-        }
-
-        // For now: just print / log (later you'll save it properly)
-        System.out.println("Update added to complaint " + complaintId + " by " + email + ": " + comment);
-
-        // ── Future real implementation ──
-        // ComplaintUpdate update = new ComplaintUpdate();
-        // update.setComment(comment);
-        // update.setCreatedAt(LocalDateTime.now());
-        // update.setUser(currentUser);
-        // update.setComplaint(complaint);
-        // complaint.getUpdates().add(update);
-        // complaintRepository.save(complaint);
+    private ComplaintUpdateDTO mapToUpdateDTO(ComplaintUpdate update) {
+        ComplaintUpdateDTO dto = new ComplaintUpdateDTO();
+        dto.setId(update.getId());
+        dto.setComment(update.getComment());
+        dto.setNewLocation(update.getNewLocation());
+        dto.setPhotoUrl(update.getPhotoUrl());
+        dto.setCreatedAt(update.getCreatedAt());
+        return dto;
     }
 }
