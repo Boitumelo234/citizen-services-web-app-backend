@@ -2,7 +2,10 @@ package com.webapp.citizen_services_web_app_backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "complaints")
@@ -17,8 +20,8 @@ public class Complaint {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false) // ← change name="user_id" → name="citizen_id"
-    private User user;   // or rename the field to citizen if you prefer
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Column(name = "reference_number", unique = true, nullable = false, length = 20)
     private String referenceNumber;
@@ -44,6 +47,10 @@ public class Complaint {
     @Column(name = "submitted_at", nullable = false)
     private LocalDateTime submittedAt;
 
+    @OneToMany(mappedBy = "complaint", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("createdAt DESC")
+    private List<ComplaintUpdate> updates = new ArrayList<>();
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {
@@ -58,5 +65,17 @@ public class Complaint {
         if (status == null) {
             status = "Pending";
         }
+    }
+
+    // Optional: helpful for logging / debugging
+    @Override
+    public String toString() {
+        return "Complaint{" +
+                "id=" + id +
+                ", referenceNumber='" + referenceNumber + '\'' +
+                ", category='" + category + '\'' +
+                ", status='" + status + '\'' +
+                ", updatesCount=" + updates.size() +
+                '}';
     }
 }

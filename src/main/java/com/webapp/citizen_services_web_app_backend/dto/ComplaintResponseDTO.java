@@ -2,10 +2,11 @@ package com.webapp.citizen_services_web_app_backend.dto;
 
 import lombok.Data;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 public class ComplaintResponseDTO {
-
     private Long id;
     private String referenceNumber;
     private String category;
@@ -13,7 +14,7 @@ public class ComplaintResponseDTO {
     private String description;
     private String status;
     private LocalDateTime createdAt;
-    private String photoUrl;          // null for now
+    private String photoUrl;
 
-    // You can add user email or other info later if needed
+    private List<ComplaintUpdateDTO> updates = new ArrayList<>();
 }
