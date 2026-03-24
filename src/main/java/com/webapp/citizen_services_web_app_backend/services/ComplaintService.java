@@ -31,32 +31,32 @@ public class ComplaintService {
         this.fileStorageService = fileStorageService;
     }
 
-    public ComplaintResponseDTO submitComplaint(ComplaintRequestDTO dto, MultipartFile photo, Authentication authentication) {
-        String email = authentication.getName();
-        User user = userRepository.findByEmail(email);
-        if (user == null) {
-            throw new RuntimeException("User not found");
-        }
-
-        Complaint complaint = new Complaint();
-        complaint.setUser(user);
-        complaint.setCategory(dto.getCategory());
-        complaint.setLocation(dto.getLocation());
-        complaint.setDescription(dto.getDescription());
-        complaint.setStatus("Pending");
-        complaint.setCreatedAt(LocalDateTime.now());
-        complaint.setSubmittedAt(LocalDateTime.now());
-
-        Complaint saved = complaintRepository.save(complaint);
-
-        if (photo != null && !photo.isEmpty()) {
-            String photoUrl = fileStorageService.storeFile(photo, saved.getId());
-            saved.setPhotoUrl(photoUrl);
-            saved = complaintRepository.save(saved);
-        }
-
-        return mapToResponseDTO(saved);
-    }
+//    public ComplaintResponseDTO submitComplaint(ComplaintRequestDTO dto, MultipartFile photo, Authentication authentication) {
+//        String email = authentication.getName();
+//        User user = userRepository.findByEmail(email);
+//        if (user == null) {
+//            throw new RuntimeException("User not found");
+//        }
+//
+//        Complaint complaint = new Complaint();
+//        complaint.setUser(user);
+//        complaint.setCategory(dto.getCategory());
+//        complaint.setLocation(dto.getLocation());
+//        complaint.setDescription(dto.getDescription());
+//        complaint.setStatus("Pending");
+//        complaint.setCreatedAt(LocalDateTime.now());
+//        complaint.setSubmittedAt(LocalDateTime.now());
+//
+//        Complaint saved = complaintRepository.save(complaint);
+//
+//        if (photo != null && !photo.isEmpty()) {
+//            String photoUrl = fileStorageService.storeFile(photo, saved.getId());
+//            saved.setPhotoUrl(photoUrl);
+//            saved = complaintRepository.save(saved);
+//        }
+//
+//        return mapToResponseDTO(saved);
+//    }
 
     public List<ComplaintResponseDTO> getMyComplaints(Authentication authentication) {
         String email = authentication.getName();
@@ -128,5 +128,40 @@ public class ComplaintService {
         dto.setPhotoUrl(update.getPhotoUrl());
         dto.setCreatedAt(update.getCreatedAt());
         return dto;
+    }
+
+    // In ComplaintService.java - update the submitComplaint method
+    public ComplaintResponseDTO submitComplaint(ComplaintRequestDTO dto, MultipartFile photo, Authentication authentication) {
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email);
+        if (user == null) {
+            throw new RuntimeException("User not found");
+        }
+
+        Complaint complaint = new Complaint();
+        complaint.setUser(user);
+        complaint.setCategory(dto.getCategory());
+        complaint.setLocation(dto.getLocation() != null ? dto.getLocation() :
+                (dto.getLatitude() != null && dto.getLongitude() != null ?
+                        String.format("%.6f, %.6f", dto.getLatitude(), dto.getLongitude()) : "Location not specified"));
+        complaint.setDescription(dto.getDescription());
+        complaint.setStatus("Pending");
+        complaint.setPriority(dto.getPriority() != null ? dto.getPriority() : "medium");
+        complaint.setCreatedAt(LocalDateTime.now());
+        complaint.setSubmittedAt(LocalDateTime.now());
+
+        // Set coordinates if provided
+        complaint.setLatitude(dto.getLatitude());
+        complaint.setLongitude(dto.getLongitude());
+
+        Complaint saved = complaintRepository.save(complaint);
+
+        if (photo != null && !photo.isEmpty()) {
+            String photoUrl = fileStorageService.storeFile(photo, saved.getId());
+            saved.setPhotoUrl(photoUrl);
+            saved = complaintRepository.save(saved);
+        }
+
+        return mapToResponseDTO(saved);
     }
 }

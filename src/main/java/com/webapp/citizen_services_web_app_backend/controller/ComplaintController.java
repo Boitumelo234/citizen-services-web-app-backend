@@ -1,10 +1,13 @@
 package com.webapp.citizen_services_web_app_backend.controller;
 
+import com.webapp.citizen_services_web_app_backend.dto.ComplaintMapDTO;
 import com.webapp.citizen_services_web_app_backend.dto.ComplaintRequestDTO;
 import com.webapp.citizen_services_web_app_backend.dto.ComplaintResponseDTO;
 import com.webapp.citizen_services_web_app_backend.entity.Complaint;
+import com.webapp.citizen_services_web_app_backend.repository.ComplaintRepository;
 import com.webapp.citizen_services_web_app_backend.services.ComplaintService;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -13,13 +16,21 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/complaints")
-@CrossOrigin(origins = "http://localhost:3000")
+//@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = {
+        "http://localhost:3000",
+        "http://localhost:5173",    // Vite default
+        "*"                         // ← remove in production or use specific domains
+})
 public class ComplaintController {
 
     private final ComplaintService complaintService;
+    @Autowired
+    private ComplaintRepository complaintRepository;
 
     public ComplaintController(ComplaintService complaintService) {
         this.complaintService = complaintService;
@@ -69,5 +80,28 @@ public class ComplaintController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", "Failed to add update"));
         }
+    }
+
+    @GetMapping("/map")
+    public ResponseEntity<List<ComplaintMapDTO>> getComplaintsForMap() {
+        List<Complaint> complaints = complaintRepository.findAllWithCoordinates();
+
+        List<ComplaintMapDTO> dtos = complaints.stream()
+                .map(c -> new ComplaintMapDTO(
+                        c.getId(),
+                        c.getReferenceNumber(),
+                        c.getCategory(),
+                        c.getStatus(),
+                        c.getPriority(),
+                        c.getLocation(),
+                        c.getLatitude(),
+                        c.getLongitude(),
+                        c.getDescription(),
+                        c.getPhotoUrl(),
+                        c.getSubmittedAt()
+                ))
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(dtos);
     }
 }

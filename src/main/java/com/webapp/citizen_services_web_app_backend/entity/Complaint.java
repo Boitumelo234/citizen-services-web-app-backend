@@ -2,7 +2,6 @@ package com.webapp.citizen_services_web_app_backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,7 +29,15 @@ public class Complaint {
     private String category;
 
     @Column(nullable = false, length = 255)
-    private String location;
+    private String location;   // ← human readable (keep it)
+
+    // ── NEW FIELDS FOR MAP ───────────────────────────────────────
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
+    // ─────────────────────────────────────────────────────────────
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
@@ -51,6 +58,10 @@ public class Complaint {
     @OrderBy("createdAt DESC")
     private List<ComplaintUpdate> updates = new ArrayList<>();
 
+    // Add to Complaint.java entity
+    @Column(length = 20)
+    private String priority = "medium";
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {
@@ -67,7 +78,6 @@ public class Complaint {
         }
     }
 
-    // Optional: helpful for logging / debugging
     @Override
     public String toString() {
         return "Complaint{" +
