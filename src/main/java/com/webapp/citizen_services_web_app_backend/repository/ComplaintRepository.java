@@ -6,4 +6,7 @@ import java.util.List;
 
 public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
     List<Complaint> findByUserIdOrderByCreatedAtDesc(Long userId);
+
+    // NEW: Fetch every complaint in the system for the Admin
+    List<Complaint> findAllByOrderByCreatedAtDesc();
 }

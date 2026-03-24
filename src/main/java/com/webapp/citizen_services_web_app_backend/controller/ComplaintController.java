@@ -1,18 +1,28 @@
 package com.webapp.citizen_services_web_app_backend.controller;
 
+
+
 import com.webapp.citizen_services_web_app_backend.dto.ComplaintRequestDTO;
 import com.webapp.citizen_services_web_app_backend.dto.ComplaintResponseDTO;
-import com.webapp.citizen_services_web_app_backend.entity.Complaint;
 import com.webapp.citizen_services_web_app_backend.services.ComplaintService;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.*; // This covers @RestController, @RequestMapping, etc.
 import org.springframework.web.multipart.MultipartFile;
+
+// --- THESE ARE THE ONES YOU LIKELY NEED TO ADD ---
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+// ------------------------------------------------
 
 import java.util.List;
 import java.util.Map;
+
+
 
 @RestController
 @RequestMapping("/api/complaints")
@@ -69,5 +79,22 @@ public class ComplaintController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", "Failed to add update"));
         }
+    }
+    // GET: http://localhost:8080/api/complaints/admin/all
+    @GetMapping("/admin/all")
+    public ResponseEntity<List<ComplaintResponseDTO>> getAllComplaints() {
+        return ResponseEntity.ok(complaintService.getAllComplaintsForAdmin());
+    }
+
+    // PATCH: http://localhost:8080/api/complaints/{id}/status
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<Map<String, String>> updateStatus(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> statusUpdate) {
+
+        String status = statusUpdate.get("status");
+        complaintService.updateComplaintStatus(id, status);
+
+        return ResponseEntity.ok(Map.of("message", "Status updated to " + status));
     }
 }

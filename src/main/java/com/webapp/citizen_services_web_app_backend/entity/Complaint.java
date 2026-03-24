@@ -1,18 +1,21 @@
 package com.webapp.citizen_services_web_app_backend.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@Entity
-@Table(name = "complaints")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Entity
+@Table(name = "complaints")
 public class Complaint {
 
     @Id
@@ -39,7 +42,7 @@ public class Complaint {
     private String photoUrl;
 
     @Column(nullable = false, length = 20)
-    private String status = "Pending";
+    private String status;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -51,23 +54,25 @@ public class Complaint {
     @OrderBy("createdAt DESC")
     private List<ComplaintUpdate> updates = new ArrayList<>();
 
+    // 🔹 Auto-fill before insert
     @PrePersist
     protected void onCreate() {
-        if (createdAt == null) {
-            createdAt = LocalDateTime.now();
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
         }
-        if (submittedAt == null) {
-            submittedAt = LocalDateTime.now();
+        if (this.submittedAt == null) {
+            this.submittedAt = LocalDateTime.now();
         }
-        if (referenceNumber == null || referenceNumber.isEmpty()) {
-            referenceNumber = "RUST-" + (1000 + (int)(Math.random() * 9000));
+        if (this.referenceNumber == null || this.referenceNumber.isEmpty()) {
+            this.referenceNumber = "RUST-" + (1000 + (int)(Math.random() * 9000));
         }
-        if (status == null) {
-            status = "Pending";
+
+        // Only set "Pending" if the status wasn't already
+        // manually set by the admin or a controller.
+        if (this.status == null || this.status.isEmpty()) {
+            this.status = "Pending";
         }
     }
-
-    // Optional: helpful for logging / debugging
     @Override
     public String toString() {
         return "Complaint{" +

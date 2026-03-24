@@ -129,4 +129,21 @@ public class ComplaintService {
         dto.setCreatedAt(update.getCreatedAt());
         return dto;
     }
+
+    // 1. Get all complaints for the Admin dashboard
+    public List<ComplaintResponseDTO> getAllComplaintsForAdmin() {
+        return complaintRepository.findAllByOrderByCreatedAtDesc().stream()
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    // 2. Update the status of a specific complaint
+    public void updateComplaintStatus(Long id, String newStatus) {
+        Complaint complaint = complaintRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Complaint not found"));
+
+        complaint.setStatus(newStatus);
+        complaintRepository.save(complaint);
+    }
+
 }
