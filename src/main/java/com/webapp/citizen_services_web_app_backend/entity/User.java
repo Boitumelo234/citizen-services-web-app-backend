@@ -5,7 +5,10 @@ import lombok.*;
 
 @Entity
 @Table(name = "users")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class User {
 
     @Id
@@ -18,7 +21,9 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+<<<<<<< HEAD
     private String role; // "CITIZEN" or "ADMIN"
 
     private String phone;
@@ -28,4 +33,20 @@ public class User {
     private String ward;
 
     private String profileImageUrl;
+=======
+    private Role role;   // ✅ use enum Role instead of String
+
+    private boolean active = true;
+
+public boolean isActive() {
+    return active;
+>>>>>>> Letago-branch
+}
+
+public void setActive(boolean active) {
+    this.active = active;
+}
+
+
+
 }
