@@ -22,6 +22,7 @@ public class FileStorageService {
         this.rootLocation = Paths.get(uploadDir).toAbsolutePath().normalize();
         try {
             Files.createDirectories(this.rootLocation);
+            System.out.println("File storage initialized at: " + this.rootLocation);
         } catch (IOException e) {
             throw new RuntimeException("Could not initialize storage directory!", e);
         }
@@ -44,6 +45,9 @@ public class FileStorageService {
 
             Files.copy(file.getInputStream(), destination);
 
+            System.out.println("File saved: " + destination.toString());
+            System.out.println("File size: " + Files.size(destination) + " bytes");
+
             // Return the relative path to be stored in DB
             return "/uploads/" + uniqueFilename;
         } catch (IOException e) {
@@ -51,12 +55,11 @@ public class FileStorageService {
         }
     }
 
-    // Optional: for serving files later via controller if needed
     public Resource loadAsResource(String filename) {
         try {
             Path file = rootLocation.resolve(filename).normalize();
             Resource resource = new UrlResource(file.toUri());
-            if (resource.exists() || resource.isReadable()) {
+            if (resource.exists() && resource.isReadable()) {
                 return resource;
             } else {
                 throw new RuntimeException("Could not read file: " + filename);
