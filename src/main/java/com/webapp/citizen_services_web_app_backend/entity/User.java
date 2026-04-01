@@ -2,6 +2,8 @@ package com.webapp.citizen_services_web_app_backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.util.List;
+import java.util.ArrayList;
 
 @Entity
 @Table(name = "users")
@@ -23,8 +25,11 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-<<<<<<< HEAD
     private String role; // "CITIZEN" or "ADMIN"
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Complaint> complaints = new ArrayList<>();
+
 
     private String phone;
 
@@ -33,14 +38,13 @@ public class User {
     private String ward;
 
     private String profileImageUrl;
-=======
+
     private Role role;   // ✅ use enum Role instead of String
 
     private boolean active = true;
 
 public boolean isActive() {
     return active;
->>>>>>> Letago-branch
 }
 
 public void setActive(boolean active) {
