@@ -20,4 +20,10 @@ public class User {
 
     @Column(nullable = false)
     private String role; // "CITIZEN" or "ADMIN"
+
+    @Column
+    private String resetToken;
+
+    @Column
+    private java.time.LocalDateTime resetTokenExpiry;
 }

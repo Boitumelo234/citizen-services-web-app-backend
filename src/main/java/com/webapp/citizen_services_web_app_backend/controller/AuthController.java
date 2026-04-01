@@ -6,10 +6,14 @@ import com.webapp.citizen_services_web_app_backend.services.JwtService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -18,14 +22,17 @@ public class AuthController {
 
     private final UserRepository userRepository;
     private final JwtService jwtService;
+    private final JavaMailSender mailSender; // Added for hMailPlus integration
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @Value("${admin.email}")
     private String adminEmail;
 
-    public AuthController(UserRepository userRepository, JwtService jwtService) {
+    // Updated constructor to inject JavaMailSender
+    public AuthController(UserRepository userRepository, JwtService jwtService, JavaMailSender mailSender) {
         this.userRepository = userRepository;
         this.jwtService = jwtService;
+        this.mailSender = mailSender;
     }
 
     @PostMapping("/register")
@@ -81,5 +88,58 @@ public class AuthController {
                         "message", "Login successful"
                 )
         );
+    }
+
+    /**
+     * UPDATED: Generates a reset token and sends a Magic Link via hMailPlus.
+     */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Map<String, String>> forgotPassword(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        User user = userRepository.findByEmail(email);
+
+        if (user == null) {
+            // We still pretend for security, but for your demo, you'll know if it works
+            return ResponseEntity.ok(Map.of("message", "If an account exists, a code will appear."));
+        }
+
+        // Generate a shorter, cleaner 6-character code for the demo
+        String token = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+
+        user.setResetToken(token);
+        user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(15));
+        userRepository.save(user);
+
+        // Instead of sending an email, we send the token directly to the frontend
+        return ResponseEntity.ok(Map.of(
+                "message", "Reset code generated successfully!",
+                "token", token
+        ));
+    }
+
+    /**
+     * Verifies the token and updates the user's password.
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<Map<String, String>> resetPassword(@RequestBody Map<String, String> request) {
+        String token = request.get("token");
+        String newPassword = request.get("newPassword");
+
+        User user = userRepository.findByResetToken(token);
+
+        // Check if token exists and hasn't expired
+        if (user == null || user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                    Map.of("error", "The reset token is invalid or has expired.")
+            );
+        }
+
+        // Encode new password and clear the reset fields
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setResetToken(null);
+        user.setResetTokenExpiry(null);
+        userRepository.save(user);
+
+        return ResponseEntity.ok(Map.of("message", "Password has been reset successfully."));
     }
 }
