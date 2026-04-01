@@ -5,7 +5,10 @@ import lombok.*;
 
 @Entity
 @Table(name = "users")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class User {
 
     @Id
@@ -18,6 +21,7 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private String role; // "CITIZEN" or "ADMIN"
 
@@ -26,4 +30,26 @@ public class User {
 
     @Column
     private java.time.LocalDateTime resetTokenExpiry;
+
+    private String phone;
+
+    private String address;
+
+    private String ward;
+
+    private String profileImageUrl;
+    private Role role;   // ✅ use enum Role instead of String
+
+    private boolean active = true;
+
+public boolean isActive() {
+    return active;
+}
+
+public void setActive(boolean active) {
+    this.active = active;
+}
+
+
+
 }

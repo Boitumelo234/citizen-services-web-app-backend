@@ -1,12 +1,12 @@
 package com.webapp.citizen_services_web_app_backend.controller;
 
 import com.webapp.citizen_services_web_app_backend.entity.User;
+import com.webapp.citizen_services_web_app_backend.entity.Role;
 import com.webapp.citizen_services_web_app_backend.repository.UserRepository;
 import com.webapp.citizen_services_web_app_backend.services.JwtService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -37,6 +38,7 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<Map<String, String>> register(@RequestBody Map<String, String> request) {
+
         String email = request.get("email");
         String password = request.get("password");
 
@@ -46,13 +48,15 @@ public class AuthController {
             );
         }
 
-        if (userRepository.findByEmail(email) != null) {
+        if (userRepository.findByEmail(email).isPresent()) {
             return ResponseEntity.badRequest().body(
                     Map.of("error", "Email already registered")
             );
         }
 
-        String role = email.equalsIgnoreCase(adminEmail) ? "ADMIN" : "CITIZEN";
+        Role role = email.equalsIgnoreCase(adminEmail)
+                ? Role.ADMIN
+                : Role.CITIZEN;
 
         User user = new User();
         user.setEmail(email);
@@ -71,15 +75,17 @@ public class AuthController {
             @RequestParam String username,
             @RequestParam String password) {
 
-        User user = userRepository.findByEmail(username);
+        Optional<User> optionalUser = userRepository.findByEmail(username);
 
-        if (user == null || !passwordEncoder.matches(password, user.getPassword())) {
+        if (optionalUser.isEmpty() || !passwordEncoder.matches(password, optionalUser.get().getPassword())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
                     Map.of("error", "Invalid email or password")
             );
         }
 
-        String token = jwtService.generateToken(user.getEmail(), user.getRole());
+        User user = optionalUser.get();
+
+        String token = jwtService.generateToken(user.getEmail(), user.getRole().name());
 
         return ResponseEntity.ok(
                 Map.of(
@@ -96,21 +102,19 @@ public class AuthController {
     @PostMapping("/forgot-password")
     public ResponseEntity<Map<String, String>> forgotPassword(@RequestBody Map<String, String> request) {
         String email = request.get("email");
-        User user = userRepository.findByEmail(email);
+        Optional<User> optionalUser = userRepository.findByEmail(email);
 
-        if (user == null) {
-            // We still pretend for security, but for your demo, you'll know if it works
+        if (optionalUser.isEmpty()) {
             return ResponseEntity.ok(Map.of("message", "If an account exists, a code will appear."));
         }
 
-        // Generate a shorter, cleaner 6-character code for the demo
+        User user = optionalUser.get();
         String token = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
 
         user.setResetToken(token);
         user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(15));
         userRepository.save(user);
 
-        // Instead of sending an email, we send the token directly to the frontend
         return ResponseEntity.ok(Map.of(
                 "message", "Reset code generated successfully!",
                 "token", token
