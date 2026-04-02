@@ -46,11 +46,9 @@ public class NotificationService {
     }
 
     private User getCurrentUser(String email) {
-        User user = userRepository.findByEmail(email);
-        if (user == null) {
-            throw new IllegalArgumentException("User not found");
-        }
-        return user;
+        // FIXED: Using .orElseThrow() to handle the Optional return from UserRepository
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with email: " + email));
     }
 
     private NotificationDTO toDto(Notification notification) {

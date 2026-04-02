@@ -6,6 +6,8 @@ import com.webapp.citizen_services_web_app_backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 public class ProfileService {
@@ -28,11 +30,10 @@ public class ProfileService {
     }
 
     private User getCurrentUser(String email) {
-        User user = userRepository.findByEmail(email);
-        if (user == null) {
-            throw new IllegalArgumentException("User not found");
-        }
-        return user;
+        // Updated to use the Optional return from repository
+        // orElseThrow automatically unwraps the User or throws the exception if empty
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with email: " + email));
     }
 
     private ProfileDTO toDto(User user) {

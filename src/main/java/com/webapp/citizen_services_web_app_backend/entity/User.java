@@ -23,7 +23,7 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String role; // "CITIZEN" or "ADMIN"
+    private Role role;
 
     @Column
     private String resetToken;
@@ -38,7 +38,6 @@ public class User {
     private String ward;
 
     private String profileImageUrl;
-    private Role role;   // ✅ use enum Role instead of String
 
     private boolean active = true;
 

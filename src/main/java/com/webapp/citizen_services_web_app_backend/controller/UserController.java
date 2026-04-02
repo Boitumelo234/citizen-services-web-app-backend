@@ -1,5 +1,6 @@
 package com.webapp.citizen_services_web_app_backend.controller;
 
+import com.webapp.citizen_services_web_app_backend.entity.Role;
 import com.webapp.citizen_services_web_app_backend.entity.User;
 import com.webapp.citizen_services_web_app_backend.repository.UserRepository;
 import com.webapp.citizen_services_web_app_backend.services.JwtService;
@@ -8,6 +9,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
@@ -75,7 +77,7 @@ public class UserController {
     // CREATE new user
     @PostMapping("/users")
     public ResponseEntity<UserDTO> createUser(@RequestBody CreateUserRequest request) {
-        User existingUser = userRepository.findByEmail(request.getEmail());
+        Optional<User> existingUser = userRepository.findByEmail(request.getEmail());
         if (existingUser != null) {
             return ResponseEntity.badRequest().body(null);
         }
@@ -92,17 +94,17 @@ public class UserController {
 
     // Request body for role update
     public static class RoleRequest {
-        private String role;
+        private Role role;
 
-        public String getRole() { return role; }
-        public void setRole(String role) { this.role = role; }
+        public Role getRole() { return role; }
+        public void setRole(Role role) { this.role = role; }
     }
 
     // Request body for creating a user
     public static class CreateUserRequest {
         private String email;
         private String password;
-        private String role;
+        private Role role;
 
         public String getEmail() { return email; }
         public void setEmail(String email) { this.email = email; }
@@ -110,8 +112,8 @@ public class UserController {
         public String getPassword() { return password; }
         public void setPassword(String password) { this.password = password; }
 
-        public String getRole() { return role; }
-        public void setRole(String role) { this.role = role; }
+        public Role getRole() { return role; }
+        public void setRole(Role role) { this.role = role; }
     }
 
     // DTO to prevent sending passwords
@@ -124,12 +126,15 @@ public class UserController {
             UserDTO dto = new UserDTO();
             dto.id = user.getId();
             dto.email = user.getEmail();
-            dto.role = user.getRole();
+            dto.role = user.getRole() != null ? user.getRole().name() : null;
             return dto;
         }
 
         public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
         public String getEmail() { return email; }
+        public void setEmail(String email) { this.email = email; }
         public String getRole() { return role; }
+        public void setRole(String role) { this.role = role; }
     }
 }
