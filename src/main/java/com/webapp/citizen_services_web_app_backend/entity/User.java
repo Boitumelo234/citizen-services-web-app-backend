@@ -25,11 +25,10 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String role; // "CITIZEN" or "ADMIN"
+    private Role role; // "CITIZEN" or "ADMIN"
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Complaint> complaints = new ArrayList<>();
-
 
     private String phone;
 
@@ -39,18 +38,13 @@ public class User {
 
     private String profileImageUrl;
 
-    private Role role;   // ✅ use enum Role instead of String
-
     private boolean active = true;
 
-public boolean isActive() {
-    return active;
-}
+    public boolean isActive() {
+        return active;
+    }
 
-public void setActive(boolean active) {
-    this.active = active;
-}
-
-
-
+    public void setActive(boolean active) {
+        this.active = active;
+    }
 }

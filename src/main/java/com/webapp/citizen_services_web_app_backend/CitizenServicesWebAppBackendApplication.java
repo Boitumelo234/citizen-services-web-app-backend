@@ -9,5 +9,4 @@ public class CitizenServicesWebAppBackendApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(CitizenServicesWebAppBackendApplication.class, args);
 	}
-
 }

@@ -1,5 +1,6 @@
 package com.webapp.citizen_services_web_app_backend.controller;
 
+import com.webapp.citizen_services_web_app_backend.entity.Role;
 import com.webapp.citizen_services_web_app_backend.entity.User;
 import com.webapp.citizen_services_web_app_backend.repository.UserRepository;
 import com.webapp.citizen_services_web_app_backend.services.JwtService;
@@ -66,7 +67,14 @@ public class UserController {
             return ResponseEntity.status(403).body(null); // forbidden
         }
 
-        user.setRole(request.getRole());
+        // Convert string role to Role enum
+        try {
+            Role role = Role.valueOf(request.getRole().toUpperCase());
+            user.setRole(role);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(null);
+        }
+
         User updatedUser = userRepository.save(user);
 
         return ResponseEntity.ok(UserDTO.fromEntity(updatedUser));
@@ -75,15 +83,26 @@ public class UserController {
     // CREATE new user
     @PostMapping("/users")
     public ResponseEntity<UserDTO> createUser(@RequestBody CreateUserRequest request) {
-        User existingUser = userRepository.findByEmail(request.getEmail());
+        User existingUser = userRepository.findByEmail(request.getEmail())
+                .orElse(null);
+
         if (existingUser != null) {
             return ResponseEntity.badRequest().body(null);
         }
 
         User user = new User();
         user.setEmail(request.getEmail());
-        user.setRole(request.getRole());
+
+        // Convert string role to Role enum
+        try {
+            Role role = Role.valueOf(request.getRole().toUpperCase());
+            user.setRole(role);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(null);
+        }
+
         user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setActive(true); // Set default active status
 
         User savedUser = userRepository.save(user);
 
@@ -124,7 +143,7 @@ public class UserController {
             UserDTO dto = new UserDTO();
             dto.id = user.getId();
             dto.email = user.getEmail();
-            dto.role = user.getRole();
+            dto.role = user.getRole().name(); // Convert Role enum to String
             return dto;
         }
 

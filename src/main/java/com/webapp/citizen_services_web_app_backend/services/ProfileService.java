@@ -28,11 +28,8 @@ public class ProfileService {
     }
 
     private User getCurrentUser(String email) {
-        User user = userRepository.findByEmail(email);
-        if (user == null) {
-            throw new IllegalArgumentException("User not found");
-        }
-        return user;
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with email: " + email));
     }
 
     private ProfileDTO toDto(User user) {
