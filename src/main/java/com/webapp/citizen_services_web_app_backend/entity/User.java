@@ -25,7 +25,13 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Role role; // "CITIZEN" or "ADMIN"
+    private Role role;
+
+    @Column
+    private String resetToken;
+
+    @Column
+    private java.time.LocalDateTime resetTokenExpiry;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Complaint> complaints = new ArrayList<>();
@@ -44,7 +50,10 @@ public class User {
         return active;
     }
 
-    public void setActive(boolean active) {
-        this.active = active;
-    }
+public void setActive(boolean active) {
+    this.active = active;
+}
+
+
+
 }

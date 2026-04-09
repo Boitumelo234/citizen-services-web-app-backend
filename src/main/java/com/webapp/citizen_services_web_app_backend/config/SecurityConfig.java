@@ -2,7 +2,8 @@ package com.webapp.citizen_services_web_app_backend.config;
 
 import com.webapp.citizen_services_web_app_backend.security.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
@@ -22,10 +23,13 @@ import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
 
-    @Autowired
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @Value("${app.cors.allowed-origin:http://localhost:3000}")
+    private String allowedOrigin;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -33,8 +37,12 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                // Add JWT filter before UsernamePasswordAuthenticationFilter
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+
                 .authorizeHttpRequests(auth -> auth
+                        // Public endpoints - no authentication required
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/public/**",
@@ -42,9 +50,15 @@ public class SecurityConfig {
                                 "/api/uploads/**",
                                 "/api/files/**"
                         ).permitAll()
-                        .requestMatchers("/api/complaints/**").hasAnyAuthority("ROLE_CITIZEN", "ROLE_ADMIN")
+
+                        // Complaints accessible by CITIZEN and ADMIN
+                        .requestMatchers("/api/complaints/**")
+                        .hasAnyAuthority("ROLE_CITIZEN", "ROLE_ADMIN")
+
+                        // All other endpoints require authentication
                         .anyRequest().authenticated()
                 )
+
                 .exceptionHandling(ex -> ex
                         .accessDeniedHandler(accessDeniedHandler())
                 );
@@ -60,8 +74,15 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://localhost:5173"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+
+        // Support both hardcoded localhosts + configurable property
+        configuration.setAllowedOrigins(Arrays.asList(
+                allowedOrigin,
+                "http://localhost:3000",
+                "http://localhost:5173"
+        ));
+
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
 
@@ -81,7 +102,10 @@ public class SecurityConfig {
                     ? accessDeniedException.getMessage()
                     : "Access denied - check roles/authorities";
 
-            String json = "{\"error\": \"Forbidden\", \"message\": \"Insufficient permissions\", \"details\": \"" + details + "\"}";
+            String json = String.format(
+                    "{\"error\": \"Forbidden\", \"message\": \"Insufficient permissions\", \"details\": \"%s\"}",
+                    details.replace("\"", "\\\"")  // Escape double quotes
+            );
 
             response.getWriter().write(json);
             response.getWriter().flush();
