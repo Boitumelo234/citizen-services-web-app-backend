@@ -31,13 +31,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
+
         String authHeader = request.getHeader("Authorization");
+
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
         String token = authHeader.substring(7);
+
         if (!jwtService.isTokenValid(token) || SecurityContextHolder.getContext().getAuthentication() != null) {
             filterChain.doFilter(request, response);
             return;
@@ -46,17 +49,27 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         try {
             String email = jwtService.extractEmail(token);
             Optional<User> userOptional = userRepository.findByEmail(email);
+
             if (userOptional.isPresent()) {
                 User user = userOptional.get();
+                String role = user.getRole().name(); // Assuming Role is an Enum (ADMIN, STAFF, CITIZEN)
 
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        email,
-                        null,
-                        List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole()))
-                );
+                System.out.println("=== JWT FILTER SUCCESS ===");
+                System.out.println("Email: " + email);
+                System.out.println("Role from DB: " + role);
+
+                var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()));
+
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(email, null, authorities);
+
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+
+                System.out.println("Granted Authority: ROLE_" + role.toUpperCase());
+                System.out.println("=========================");
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            System.out.println("JWT Filter Error: " + e.getMessage());
             SecurityContextHolder.clearContext();
         }
 

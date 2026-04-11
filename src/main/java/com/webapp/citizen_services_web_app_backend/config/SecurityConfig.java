@@ -1,6 +1,6 @@
 package com.webapp.citizen_services_web_app_backend.config;
 
-import com.webapp.citizen_services_web_app_backend.security.JwtAuthenticationFilter;
+import com.webapp.citizen_services_web_app_backend.security.JwtAuthFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,7 +26,7 @@ import java.util.Arrays;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final JwtAuthFilter jwtAuthenticationFilter;
 
     @Value("${app.cors.allowed-origin:http://localhost:3000}")
     private String allowedOrigin;
@@ -37,12 +37,9 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
-                // Add JWT filter before UsernamePasswordAuthenticationFilter
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
 
                 .authorizeHttpRequests(auth -> auth
-                        // Public endpoints - no authentication required
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/public/**",
@@ -51,11 +48,13 @@ public class SecurityConfig {
                                 "/api/files/**"
                         ).permitAll()
 
-                        // Complaints accessible by CITIZEN and ADMIN
-                        .requestMatchers("/api/complaints/**")
-                        .hasAnyAuthority("ROLE_CITIZEN", "ROLE_ADMIN")
+                        // ✅ FIXED: Allow both "ROLE_ADMIN" and "ADMIN" to be safe
+                        .requestMatchers("/api/users/**").hasAnyAuthority("ROLE_ADMIN", "ADMIN")
 
-                        // All other endpoints require authentication
+                        // Complaints
+                        .requestMatchers("/api/complaints/**")
+                        .hasAnyAuthority("ROLE_CITIZEN", "ROLE_ADMIN", "CITIZEN")
+
                         .anyRequest().authenticated()
                 )
 
@@ -74,14 +73,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-
-        // Support both hardcoded localhosts + configurable property
         configuration.setAllowedOrigins(Arrays.asList(
                 allowedOrigin,
                 "http://localhost:3000",
                 "http://localhost:5173"
         ));
-
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
