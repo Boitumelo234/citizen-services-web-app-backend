@@ -1,9 +1,11 @@
 package com.webapp.citizen_services_web_app_backend.services;
 
 import com.webapp.citizen_services_web_app_backend.dto.DashboardDTO;
+import com.webapp.citizen_services_web_app_backend.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
@@ -11,19 +13,22 @@ import java.util.Locale;
 @RequiredArgsConstructor
 public class DashboardService {
 
+    private final ComplaintService complaintService;
     private final ProfileService profileService;
     private final NotificationService notificationService;
 
     public DashboardDTO getDashboard(String email) {
+        User user = complaintService.getCurrentUserByEmail(email);
         String citizenName = deriveCitizenName(profileService.getProfile(email).getEmail());
+        List<DashboardDTO.CategoryCount> categories = complaintService.getCategoryCounts(user);
 
         return DashboardDTO.builder()
                 .citizenName(citizenName)
-                .totalComplaints(0)
-                .resolvedThisMonth(0)
+                .totalComplaints(complaintService.countComplaints(user))
+                .resolvedThisMonth(complaintService.countResolvedThisMonth(user))
                 .unreadNotifications(notificationService.countUnread(email))
-                .categories(defaultCategories())
-                .recentComplaints(List.of())
+                .categories(categories.isEmpty() ? defaultCategories() : categories)
+                .recentComplaints(complaintService.getRecentComplaints(user))
                 .build();
     }
 

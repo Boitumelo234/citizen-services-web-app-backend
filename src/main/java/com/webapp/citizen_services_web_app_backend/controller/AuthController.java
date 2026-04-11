@@ -1,6 +1,7 @@
 package com.webapp.citizen_services_web_app_backend.controller;
 
 import com.webapp.citizen_services_web_app_backend.entity.User;
+import com.webapp.citizen_services_web_app_backend.entity.Role;
 import com.webapp.citizen_services_web_app_backend.repository.UserRepository;
 import com.webapp.citizen_services_web_app_backend.services.JwtService;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,7 +45,7 @@ public class AuthController {
             );
         }
 
-        String role = email.equalsIgnoreCase(adminEmail) ? "ADMIN" : "CITIZEN";
+        Role role = email.equalsIgnoreCase(adminEmail) ? Role.ADMIN : Role.CITIZEN;
 
         User user = new User();
         user.setEmail(email);
@@ -71,7 +72,7 @@ public class AuthController {
             );
         }
 
-        String token = jwtService.generateToken(user.getEmail(), user.getRole());
+        String token = jwtService.generateToken(user.getEmail(), user.getRole().name());
 
         return ResponseEntity.ok(
                 Map.of(
