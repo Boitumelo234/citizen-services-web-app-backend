@@ -1,6 +1,7 @@
 package com.webapp.citizen_services_web_app_backend.controller;
 
 import com.webapp.citizen_services_web_app_backend.entity.User;
+import com.webapp.citizen_services_web_app_backend.entity.Role;
 import com.webapp.citizen_services_web_app_backend.repository.UserRepository;
 import com.webapp.citizen_services_web_app_backend.services.JwtService;
 import org.springframework.beans.factory.annotation.Value;

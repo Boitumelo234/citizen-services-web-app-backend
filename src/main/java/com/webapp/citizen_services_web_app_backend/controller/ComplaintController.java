@@ -13,6 +13,10 @@ import com.webapp.citizen_services_web_app_backend.services.ComplaintService;
 import com.webapp.citizen_services_web_app_backend.services.JwtService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.webapp.citizen_services_web_app_backend.dto.ComplaintRequestDTO;
+import com.webapp.citizen_services_web_app_backend.dto.ComplaintResponseDTO;
+import com.webapp.citizen_services_web_app_backend.services.ComplaintService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -21,6 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/complaints")
@@ -63,6 +68,23 @@ public class ComplaintController {
 
         ComplaintResponseDTO saved = complaintService.submitComplaint(dto, photo, authentication);
 
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/complaints")
+@RequiredArgsConstructor
+public class ComplaintController {
+
+    private final ComplaintService complaintService;
+
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Map<String, Object>> submitComplaint(
+            @RequestPart("data") ComplaintRequestDTO dto,
+            @RequestPart(value = "photo", required = false) MultipartFile photo,
+            Authentication authentication
+    ) {
+        ComplaintResponseDTO saved = complaintService.submitComplaint(dto, photo, authentication);
         return ResponseEntity.ok(Map.of(
                 "message", "Complaint submitted successfully",
                 "referenceNumber", saved.getReferenceNumber(),
@@ -75,6 +97,7 @@ public class ComplaintController {
     public ResponseEntity<List<ComplaintResponseDTO>> getMyComplaints(Authentication authentication) {
         List<ComplaintResponseDTO> complaints = complaintService.getMyComplaints(authentication);
         return ResponseEntity.ok(complaints);
+        return ResponseEntity.ok(complaintService.getMyComplaints(authentication));
     }
 
     @PostMapping(value = "/{id}/updates", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -179,5 +202,15 @@ public class ComplaintController {
         m.put("status", c.getStatus());
         m.put("createdAt", c.getCreatedAt() != null ? c.getCreatedAt().toString() : null);
         return m;
+    }
+}
+            @PathVariable Long id,
+            @RequestParam("comment") String comment,
+            @RequestParam(value = "newLocation", required = false) String newLocation,
+            @RequestPart(value = "photo", required = false) MultipartFile photo,
+            Authentication authentication
+    ) {
+        complaintService.addComplaintUpdate(id, comment, newLocation, photo, authentication);
+        return ResponseEntity.ok(Map.of("message", "Update added successfully"));
     }
 }

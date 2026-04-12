@@ -7,6 +7,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import com.webapp.citizen_services_web_app_backend.entity.Complaint;
+import com.webapp.citizen_services_web_app_backend.entity.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -105,4 +109,30 @@ public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
     // List<Object[]> getStatusCounts();
     // @Query("SELECT c.area, COUNT(c) FROM Complaint c GROUP BY c.area ORDER BY COUNT(c) DESC")
     // List<Object[]> getComplaintsByArea();
+}
+public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
+    List<Complaint> findByUserIdOrderByCreatedAtDesc(Long userId);
+
+    List<Complaint> findTop5ByUserOrderByCreatedAtDesc(User user);
+
+    List<Complaint> findByUser(User user);
+
+    long countByUser(User user);
+
+    long countByUserAndStatusIgnoreCase(User user, String status);
+
+    @Query("""
+        select count(c) from Complaint c
+        where c.user = :user
+        and lower(c.status) = lower(:status)
+        and c.resolvedAt >= :startOfMonth
+        """)
+    long countResolvedByUserSince(User user, String status, LocalDateTime startOfMonth);
+
+    @Query("""
+        select c from Complaint c
+        where c.latitude is not null and c.longitude is not null
+        order by c.createdAt desc
+        """)
+    List<Complaint> findAllWithCoordinates();
 }

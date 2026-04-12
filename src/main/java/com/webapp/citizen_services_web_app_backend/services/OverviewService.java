@@ -1,6 +1,8 @@
 package com.webapp.citizen_services_web_app_backend.services;
 
 import com.webapp.citizen_services_web_app_backend.dto.OverviewDTO;
+import com.webapp.citizen_services_web_app_backend.entity.User;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.YearMonth;
@@ -9,16 +11,23 @@ import java.util.Locale;
 import java.util.stream.IntStream;
 
 @Service
+@RequiredArgsConstructor
 public class OverviewService {
 
+    private final ComplaintService complaintService;
+
     public OverviewDTO getOverview(String email) {
+        User user = complaintService.getCurrentUserByEmail(email);
+        List<com.webapp.citizen_services_web_app_backend.dto.DashboardDTO.CategoryCount> topCategories =
+                complaintService.getCategoryCounts(user);
+
         return OverviewDTO.builder()
-                .lifetimeSubmitted(0)
-                .resolved(0)
-                .open(0)
-                .avgResolutionDays(0)
-                .topCategories(defaultTopCategories())
-                .monthlyTrend(defaultMonthlyTrend())
+                .lifetimeSubmitted(complaintService.countComplaints(user))
+                .resolved(complaintService.countResolved(user))
+                .open(complaintService.countOpen(user))
+                .avgResolutionDays(complaintService.averageResolutionDays(user))
+                .topCategories(topCategories.isEmpty() ? defaultTopCategories() : topCategories)
+                .monthlyTrend(complaintService.getMonthlyTrend(user))
                 .build();
     }
 

@@ -1,6 +1,7 @@
 package com.webapp.citizen_services_web_app_backend.dto;
 
 import lombok.Data;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;

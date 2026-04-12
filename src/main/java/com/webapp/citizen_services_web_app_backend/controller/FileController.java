@@ -1,5 +1,7 @@
 package com.webapp.citizen_services_web_app_backend.controller;
 
+import com.webapp.citizen_services_web_app_backend.services.FileStorageService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
@@ -15,6 +17,13 @@ import java.nio.file.Paths;
 public class FileController {
 
     private final String uploadDir = System.getProperty("user.dir") + "/uploads/";
+
+@RestController
+@RequestMapping("/api/files")
+@RequiredArgsConstructor
+public class FileController {
+
+    private final FileStorageService fileStorageService;
 
     @GetMapping("/{filename:.+}")
     public ResponseEntity<Resource> serveFile(@PathVariable String filename) {
