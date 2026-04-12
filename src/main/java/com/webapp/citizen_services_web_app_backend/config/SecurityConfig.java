@@ -40,6 +40,7 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
 
                 .authorizeHttpRequests(auth -> auth
+                        // Public endpoints
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/public/**",
@@ -48,13 +49,15 @@ public class SecurityConfig {
                                 "/api/files/**"
                         ).permitAll()
 
-                        // ✅ FIXED: Allow both "ROLE_ADMIN" and "ADMIN" to be safe
+                        // === ADMIN DASHBOARD ENDPOINTS ===
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")   // ← THIS WAS MISSING
+
+                        // Other endpoints you already had
                         .requestMatchers("/api/users/**").hasAnyAuthority("ROLE_ADMIN", "ADMIN")
-
-                        // Complaints
                         .requestMatchers("/api/complaints/**")
-                        .hasAnyAuthority("ROLE_CITIZEN", "ROLE_ADMIN", "CITIZEN")
+                        .hasAnyAuthority("ROLE_CITIZEN", "ROLE_ADMIN", "CITIZEN", "ADMIN")
 
+                        // Everything else requires authentication
                         .anyRequest().authenticated()
                 )
 
@@ -64,6 +67,7 @@ public class SecurityConfig {
 
         return http.build();
     }
+
 
     @Bean
     public PasswordEncoder passwordEncoder() {
