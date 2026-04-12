@@ -52,7 +52,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
             if (userOptional.isPresent()) {
                 User user = userOptional.get();
-                String role = user.getRole().name(); // Assuming Role is an Enum (ADMIN, STAFF, CITIZEN)
+                String role = user.getRole(); // Assuming Role is an Enum (ADMIN, STAFF, CITIZEN)
 
                 System.out.println("=== JWT FILTER SUCCESS ===");
                 System.out.println("Email: " + email);

@@ -1,7 +1,6 @@
 package com.webapp.citizen_services_web_app_backend.config;
 
 import com.webapp.citizen_services_web_app_backend.entity.User;
-import com.webapp.citizen_services_web_app_backend.entity.Role;
 import com.webapp.citizen_services_web_app_backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
@@ -34,7 +33,7 @@ public class AdminInitializer {
                 User admin = new User();
                 admin.setEmail(adminEmail);
                 admin.setPassword(passwordEncoder.encode(adminPassword));
-                admin.setRole(Role.ADMIN);
+                admin.setRole("ADMIN");          // String, not enum
 
                 userRepository.save(admin);
 
@@ -45,9 +44,9 @@ public class AdminInitializer {
                 User admin = optionalAdmin.get();
                 boolean needsUpdate = false;
 
-                // Ensure role is ADMIN
-                if (admin.getRole() != Role.ADMIN) {
-                    admin.setRole(Role.ADMIN);
+                // Ensure role is ADMIN (string comparison)
+                if (!"ADMIN".equals(admin.getRole())) {
+                    admin.setRole("ADMIN");
                     needsUpdate = true;
                 }
 

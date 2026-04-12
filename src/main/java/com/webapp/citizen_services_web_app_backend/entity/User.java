@@ -2,8 +2,9 @@ package com.webapp.citizen_services_web_app_backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.util.List;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -23,37 +24,34 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Role role;
+    private String role;                    // CITIZEN, STAFF, ADMIN
+
+//    @Enumerated(EnumType.STRING)
+//    @Column(nullable = false)
+//    private Role roleEnum;
 
     @Column
     private String resetToken;
 
     @Column
-    private java.time.LocalDateTime resetTokenExpiry;
+    private LocalDateTime resetTokenExpiry;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Complaint> complaints = new ArrayList<>();
 
     private String phone;
-
+    private String fullName;
     private String address;
-
     private String ward;
-
     private String profileImageUrl;
 
-    private boolean active = true;
+    @Column(nullable = false)
+    private Boolean active = true;          // Changed to Boolean (recommended)
 
-    public boolean isActive() {
-        return active;
-    }
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "department_id")
+    private Department department;
 
-public void setActive(boolean active) {
-    this.active = active;
-}
-
-
-
+    // Lombok + Boolean will generate both isActive() and getActive()
 }

@@ -1,6 +1,5 @@
 package com.webapp.citizen_services_web_app_backend.controller;
 
-import com.webapp.citizen_services_web_app_backend.entity.Role;
 import com.webapp.citizen_services_web_app_backend.entity.User;
 import com.webapp.citizen_services_web_app_backend.repository.UserRepository;
 import com.webapp.citizen_services_web_app_backend.services.JwtService;
@@ -25,7 +24,6 @@ public class UserController {
         this.jwtService = jwtService;
     }
 
-    // GET all users
     @GetMapping("/users")
     public List<UserDTO> getAllUsers() {
         return userRepository.findAll()
@@ -34,14 +32,12 @@ public class UserController {
                 .collect(Collectors.toList());
     }
 
-    // DELETE user
     @DeleteMapping("/users/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         userRepository.deleteById(id);
         return ResponseEntity.noContent().build();
     }
 
-    // UPDATE user role (using Role enum directly)
     @PutMapping("/users/{id}/role")
     public ResponseEntity<UserDTO> updateUserRole(
             @PathVariable Long id,
@@ -50,69 +46,63 @@ public class UserController {
 
         String loggedInEmail = "";
 
-        // Extract email from JWT if present
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             try {
                 String token = authHeader.replace("Bearer ", "");
                 loggedInEmail = jwtService.extractEmail(token);
             } catch (Exception e) {
-                // Invalid token → treat as no logged-in user
+                // Invalid token – treat as no logged-in user
             }
         }
 
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Prevent users from changing their own role
         if (!loggedInEmail.isEmpty() && user.getEmail().equalsIgnoreCase(loggedInEmail)) {
-            return ResponseEntity.status(403).build(); // Forbidden
+            return ResponseEntity.status(403).build();
         }
 
-        // Set the role directly (since it's already a Role enum)
+        // Role is stored as a String
         user.setRole(request.getRole());
 
         User updatedUser = userRepository.save(user);
         return ResponseEntity.ok(UserDTO.fromEntity(updatedUser));
     }
 
-    // CREATE new user (using Role enum directly)
     @PostMapping("/users")
     public ResponseEntity<UserDTO> createUser(@RequestBody CreateUserRequest request) {
-        // Check if user already exists
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             return ResponseEntity.badRequest().build();
         }
 
         User user = new User();
         user.setEmail(request.getEmail());
-        user.setRole(request.getRole());                    // Direct Role enum
+        user.setRole(request.getRole());               // String
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setActive(true); // default active status
+        user.setActive(true);
 
         User savedUser = userRepository.save(user);
         return ResponseEntity.ok(UserDTO.fromEntity(savedUser));
     }
 
-    // ====================== Inner Classes (Request & DTO) ======================
+    // ====================== Inner Classes ======================
 
-    // Request body for updating role
     public static class RoleRequest {
-        private Role role;
+        private String role;
 
-        public Role getRole() {
+        public String getRole() {
             return role;
         }
 
-        public void setRole(Role role) {
+        public void setRole(String role) {
             this.role = role;
         }
     }
 
-    // Request body for creating a user
     public static class CreateUserRequest {
         private String email;
         private String password;
-        private Role role;
+        private String role;
 
         public String getEmail() {
             return email;
@@ -130,16 +120,15 @@ public class UserController {
             this.password = password;
         }
 
-        public Role getRole() {
+        public String getRole() {
             return role;
         }
 
-        public void setRole(Role role) {
+        public void setRole(String role) {
             this.role = role;
         }
     }
 
-    // DTO to avoid exposing password
     public static class UserDTO {
         private Long id;
         private String email;
@@ -149,7 +138,7 @@ public class UserController {
             UserDTO dto = new UserDTO();
             dto.id = user.getId();
             dto.email = user.getEmail();
-            dto.role = user.getRole() != null ? user.getRole().name() : null;
+            dto.role = user.getRole();
             return dto;
         }
 

@@ -28,6 +28,9 @@ public class JwtService {
                 .compact();
     }
 
+    public String extractUsername(String token) {
+        return extractEmail(token);
+    }
     public String extractEmail(String token) {
         return Jwts.parser()
                 .verifyWith(getSigningKey())

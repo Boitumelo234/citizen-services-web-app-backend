@@ -18,6 +18,7 @@ public class Complaint {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Fields from main branch
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -68,8 +69,32 @@ public class Complaint {
     @Column(length = 20)
     private String priority = "medium";
 
+    // Fields from your branch (without removing anything)
+    @Column(nullable = false)
+    private String title;
+
+    // Branch also has "area", "priority", "status", "latitude", "longitude", "description", "resolvedAt", "createdAt"
+    // These are already covered above with main branch columns (we keep the column definitions from main where they conflict)
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "citizen_id")
+    private User citizen;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_to_id")
+    private User assignedToUser;   // renamed to avoid conflict with String assignedTo
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "department_id")
+    private Department department;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    // PrePersist and PreUpdate combined (both logics preserved)
     @PrePersist
     protected void onCreate() {
+        // From main branch
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
         }
@@ -81,6 +106,20 @@ public class Complaint {
         }
         if (status == null) {
             status = "Pending";
+        }
+
+        // From your branch
+        if (status == null) status = "PENDING";
+        if (priority == null) priority = "MEDIUM";
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        // From your branch
+        updatedAt = LocalDateTime.now();
+        if ("RESOLVED".equals(status) && resolvedAt == null) {
+            resolvedAt = LocalDateTime.now();
         }
     }
 

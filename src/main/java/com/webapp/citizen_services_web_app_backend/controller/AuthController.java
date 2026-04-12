@@ -1,6 +1,5 @@
 package com.webapp.citizen_services_web_app_backend.controller;
 
-import com.webapp.citizen_services_web_app_backend.entity.Role;
 import com.webapp.citizen_services_web_app_backend.entity.User;
 import com.webapp.citizen_services_web_app_backend.repository.UserRepository;
 import com.webapp.citizen_services_web_app_backend.services.JwtService;
@@ -23,13 +22,12 @@ public class AuthController {
 
     private final UserRepository userRepository;
     private final JwtService jwtService;
-    private final JavaMailSender mailSender;           // Can be null if not configured
+    private final JavaMailSender mailSender;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @Value("${admin.email:admin@example.com}")
     private String adminEmail;
 
-    // Constructor with Optional to prevent startup failure when mail is not configured
     public AuthController(
             UserRepository userRepository,
             JwtService jwtService,
@@ -56,13 +54,14 @@ public class AuthController {
                     .body(Map.of("error", "Email already registered"));
         }
 
-        Role role = email.equalsIgnoreCase(adminEmail) ? Role.ADMIN : Role.CITIZEN;
+        // Role as String
+        String role = email.equalsIgnoreCase(adminEmail) ? "ADMIN" : "CITIZEN";
 
         User user = new User();
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(password));
         user.setRole(role);
-        user.setActive(true);                    // Good practice
+        user.setActive(true);
 
         userRepository.save(user);
 
@@ -83,8 +82,7 @@ public class AuthController {
         }
 
         User user = optionalUser.get();
-
-        String token = jwtService.generateToken(user.getEmail(), user.getRole().name());
+        String token = jwtService.generateToken(user.getEmail(), user.getRole());
 
         return ResponseEntity.ok(Map.of(
                 "access_token", token,
@@ -105,7 +103,6 @@ public class AuthController {
         Optional<User> optionalUser = userRepository.findByEmail(email);
 
         if (optionalUser.isEmpty()) {
-            // Security best practice: don't reveal if email exists
             return ResponseEntity.ok(Map.of("message", "If an account exists, a reset code will be sent."));
         }
 
@@ -116,21 +113,15 @@ public class AuthController {
         user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(15));
         userRepository.save(user);
 
-        // Log the token for now (you can remove this later)
         System.out.println("=== PASSWORD RESET CODE ===");
         System.out.println("Email : " + email);
         System.out.println("Code  : " + token);
         System.out.println("Expires in 15 minutes");
         System.out.println("===========================");
 
-        // TODO: When you're ready, send real email:
-        // if (mailSender != null) {
-        //     sendResetCodeEmail(email, token);
-        // }
-
         return ResponseEntity.ok(Map.of(
                 "message", "If an account exists, a reset code has been sent to your email.",
-                "token", token          // ← Remove this in production for security!
+                "token", token
         ));
     }
 
