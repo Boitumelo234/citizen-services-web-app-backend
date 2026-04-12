@@ -1,13 +1,6 @@
 package com.webapp.citizen_services_web_app_backend.services;
 
-import com.webapp.citizen_services_web_app_backend.dto.ComplaintRequestDTO;
-import com.webapp.citizen_services_web_app_backend.dto.ComplaintResponseDTO;
-import com.webapp.citizen_services_web_app_backend.dto.ComplaintUpdateDTO;
-import com.webapp.citizen_services_web_app_backend.dto.DashboardDTO;
-import com.webapp.citizen_services_web_app_backend.dto.ComplaintRequestDTO;
-import com.webapp.citizen_services_web_app_backend.dto.ComplaintResponseDTO;
-import com.webapp.citizen_services_web_app_backend.dto.ComplaintUpdateDTO;
-import com.webapp.citizen_services_web_app_backend.dto.OverviewDTO;
+import com.webapp.citizen_services_web_app_backend.dto.*;
 import com.webapp.citizen_services_web_app_backend.entity.Complaint;
 import com.webapp.citizen_services_web_app_backend.entity.ComplaintUpdate;
 import com.webapp.citizen_services_web_app_backend.entity.User;
@@ -19,19 +12,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
-
-@Service
-public class ComplaintService {
-
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,15 +27,7 @@ public class ComplaintService {
     private final UserRepository userRepository;
     private final FileStorageService fileStorageService;
 
-    public ComplaintService(ComplaintRepository complaintRepository,
-                            UserRepository userRepository,
-                            FileStorageService fileStorageService) {
-        this.complaintRepository = complaintRepository;
-        this.userRepository = userRepository;
-        this.fileStorageService = fileStorageService;
-    }
-
-    // ─── Your Branch Version ───────────────────────────────────────
+    // ==================== Original / Simple Methods ====================
 
     public Complaint submitComplaint(String title, String category, String description,
                                      String area, String priority, String citizenEmail) {
@@ -137,11 +112,10 @@ public class ComplaintService {
         }).collect(Collectors.toList());
 
         stats.put("recentComplaints", recentList);
-
         return stats;
     }
 
-    // ==================== Methods from Main Branch ====================
+    // ==================== Main Branch Advanced Methods ====================
 
     public String generateReferenceNumber() {
         long count = complaintRepository.count() + 1;
@@ -167,24 +141,7 @@ public class ComplaintService {
         return complaintRepository.save(complaint);
     }
 
-    public ComplaintResponseDTO submitComplaint(ComplaintRequestDTO dto, MultipartFile photo, Authentication authentication) {
-        String email = authentication.getName();
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        Complaint complaint = new Complaint();
-        complaint.setUser(user);
-        complaint.setCategory(dto.getCategory());
-        complaint.setLocation(dto.getLocation() != null ? dto.getLocation() :
-                (dto.getLatitude() != null && dto.getLongitude() != null ?
-                        String.format("%.6f, %.6f", dto.getLatitude(), dto.getLongitude()) : "Location not specified"));
-        complaint.setDescription(dto.getDescription());
-        complaint.setStatus("Pending");
-        complaint.setPriority(dto.getPriority() != null ? dto.getPriority() : "medium");
-        complaint.setCreatedAt(LocalDateTime.now());
-        complaint.setSubmittedAt(LocalDateTime.now());
-        complaint.setLatitude(dto.getLatitude());
-        complaint.setLongitude(dto.getLongitude());
+    // Unified submitComplaint with DTO and photo
     public ComplaintResponseDTO submitComplaint(ComplaintRequestDTO dto, MultipartFile photo, Authentication authentication) {
         validateComplaintRequest(dto);
         User user = getCurrentUser(authentication.getName());
@@ -210,30 +167,6 @@ public class ComplaintService {
             saved = complaintRepository.save(saved);
         }
 
-        return mapToResponseDTO(saved);
-    }
-
-    public List<ComplaintResponseDTO> getMyComplaints(Authentication authentication) {
-        String email = authentication.getName();
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        List<Complaint> complaints = complaintRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
-        return complaints.stream()
-                .map(this::mapToResponseDTO)
-                .collect(Collectors.toList());
-    }
-
-    public void addComplaintUpdate(Long complaintId, String comment, String newLocation,
-                                   MultipartFile photo, Authentication authentication) {
-        String email = authentication.getName();
-        User currentUser = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
-            saved.setPhotoUrl(fileStorageService.storeFile(photo, saved.getId()));
-            saved = complaintRepository.save(saved);
-        }
-
         return toResponseDto(saved);
     }
 
@@ -242,7 +175,7 @@ public class ComplaintService {
         return complaintRepository.findByUserIdOrderByCreatedAtDesc(user.getId())
                 .stream()
                 .map(this::toResponseDto)
-                .toList();
+                .collect(Collectors.toList());
     }
 
     public void addComplaintUpdate(Long complaintId, String comment, String newLocation, MultipartFile photo, Authentication authentication) {
@@ -260,9 +193,6 @@ public class ComplaintService {
 
         ComplaintUpdate update = new ComplaintUpdate();
         update.setComment(comment.trim());
-        if (newLocation != null && !newLocation.trim().isEmpty()) {
-            update.setNewLocation(newLocation.trim());
-        }
         update.setNewLocation((newLocation == null || newLocation.isBlank()) ? null : newLocation.trim());
         update.setUser(currentUser);
         update.setComplaint(complaint);
@@ -270,14 +200,14 @@ public class ComplaintService {
         if (photo != null && !photo.isEmpty()) {
             String photoUrl = fileStorageService.storeFile(photo, complaintId);
             update.setPhotoUrl(photoUrl);
-            update.setPhotoUrl(fileStorageService.storeFile(photo, complaintId));
         }
 
         complaint.getUpdates().add(update);
         complaintRepository.save(complaint);
     }
 
-    private ComplaintResponseDTO mapToResponseDTO(Complaint complaint) {
+    // ==================== Dashboard & Overview Helpers ====================
+
     public List<DashboardDTO.CategoryCount> getCategoryCounts(User user) {
         Map<String, Long> counts = complaintRepository.findByUser(user)
                 .stream()
@@ -287,7 +217,7 @@ public class ComplaintService {
                 .stream()
                 .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
                 .map(entry -> DashboardDTO.CategoryCount.builder().name(entry.getKey()).count(entry.getValue()).build())
-                .toList();
+                .collect(Collectors.toList());
     }
 
     public List<DashboardDTO.RecentComplaint> getRecentComplaints(User user) {
@@ -300,7 +230,7 @@ public class ComplaintService {
                         .status(complaint.getStatus())
                         .date(complaint.getCreatedAt() == null ? "" : complaint.getCreatedAt().format(RECENT_DATE_FORMAT))
                         .build())
-                .toList();
+                .collect(Collectors.toList());
     }
 
     public long countComplaints(User user) {
@@ -330,7 +260,7 @@ public class ComplaintService {
         List<Complaint> resolvedComplaints = complaintRepository.findByUser(user)
                 .stream()
                 .filter(this::hasResolutionWindow)
-                .toList();
+                .collect(Collectors.toList());
 
         if (resolvedComplaints.isEmpty()) {
             return 0;
@@ -359,59 +289,18 @@ public class ComplaintService {
                         .month(month.getMonth().name().substring(0, 3).toUpperCase(Locale.ROOT))
                         .count(grouped.getOrDefault(month, 0L))
                         .build())
-                .toList();
+                .collect(Collectors.toList());
     }
 
     public User getCurrentUserByEmail(String email) {
         return getCurrentUser(email);
     }
 
-    private ComplaintResponseDTO toResponseDto(Complaint complaint) {
-        ComplaintResponseDTO dto = new ComplaintResponseDTO();
-        dto.setId(complaint.getId());
-        dto.setReferenceNumber(complaint.getReferenceNumber());
-        dto.setCategory(complaint.getCategory());
-        dto.setLocation(complaint.getLocation());
-        dto.setDescription(complaint.getDescription());
-        dto.setStatus(complaint.getStatus());
-        dto.setCreatedAt(complaint.getCreatedAt());
-        dto.setPhotoUrl(complaint.getPhotoUrl());
-
-        if (complaint.getUpdates() != null) {
-            dto.setUpdates(complaint.getUpdates().stream()
-                    .map(this::mapToUpdateDTO)
-                    .collect(Collectors.toList()));
-        }
-        return dto;
-    }
-
-    private ComplaintUpdateDTO mapToUpdateDTO(ComplaintUpdate update) {
-        dto.setUpdates(
-                complaint.getUpdates().stream()
-                        .sorted(Comparator.comparing(ComplaintUpdate::getCreatedAt).reversed())
-                        .map(this::toUpdateDto)
-                        .toList()
-        );
-        return dto;
-    }
-
-    private ComplaintUpdateDTO toUpdateDto(ComplaintUpdate update) {
-        ComplaintUpdateDTO dto = new ComplaintUpdateDTO();
-        dto.setId(update.getId());
-        dto.setComment(update.getComment());
-        dto.setNewLocation(update.getNewLocation());
-        dto.setPhotoUrl(update.getPhotoUrl());
-        dto.setCreatedAt(update.getCreatedAt());
-        return dto;
-    }
-}
+    // ==================== Private Helpers ====================
 
     private User getCurrentUser(String email) {
-        User user = userRepository.findByEmail(email);
-        if (user == null) {
-            throw new IllegalArgumentException("User not found");
-        }
-        return user;
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with email: " + email));
     }
 
     private void validateComplaintRequest(ComplaintRequestDTO dto) {
@@ -424,12 +313,6 @@ public class ComplaintService {
         if (dto.getDescription() == null || dto.getDescription().isBlank()) {
             throw new IllegalArgumentException("Description is required");
         }
-    }
-
-    private String generateReferenceNumber() {
-        long count = complaintRepository.count() + 1;
-        int year = LocalDateTime.now().getYear();
-        return String.format("RLM-%d-%04d", year, count);
     }
 
     private String resolveLocation(ComplaintRequestDTO dto) {
@@ -456,5 +339,35 @@ public class ComplaintService {
         }
         String trimmed = description.trim();
         return trimmed.length() <= 48 ? trimmed : trimmed.substring(0, 45) + "...";
+    }
+
+    private ComplaintResponseDTO toResponseDto(Complaint complaint) {
+        ComplaintResponseDTO dto = new ComplaintResponseDTO();
+        dto.setId(complaint.getId());
+        dto.setReferenceNumber(complaint.getReferenceNumber());
+        dto.setCategory(complaint.getCategory());
+        dto.setLocation(complaint.getLocation());
+        dto.setDescription(complaint.getDescription());
+        dto.setStatus(complaint.getStatus());
+        dto.setCreatedAt(complaint.getCreatedAt());
+        dto.setPhotoUrl(complaint.getPhotoUrl());
+
+        if (complaint.getUpdates() != null) {
+            dto.setUpdates(complaint.getUpdates().stream()
+                    .sorted(Comparator.comparing(ComplaintUpdate::getCreatedAt).reversed())
+                    .map(this::toUpdateDto)
+                    .collect(Collectors.toList()));
+        }
+        return dto;
+    }
+
+    private ComplaintUpdateDTO toUpdateDto(ComplaintUpdate update) {
+        ComplaintUpdateDTO dto = new ComplaintUpdateDTO();
+        dto.setId(update.getId());
+        dto.setComment(update.getComment());
+        dto.setNewLocation(update.getNewLocation());
+        dto.setPhotoUrl(update.getPhotoUrl());
+        dto.setCreatedAt(update.getCreatedAt());
+        return dto;
     }
 }

@@ -4,7 +4,6 @@ import com.webapp.citizen_services_web_app_backend.dto.ComplaintMapDTO;
 import com.webapp.citizen_services_web_app_backend.dto.ComplaintRequestDTO;
 import com.webapp.citizen_services_web_app_backend.dto.ComplaintResponseDTO;
 import com.webapp.citizen_services_web_app_backend.entity.Complaint;
-import com.webapp.citizen_services_web_app_backend.entity.Department;
 import com.webapp.citizen_services_web_app_backend.entity.User;
 import com.webapp.citizen_services_web_app_backend.repository.ComplaintRepository;
 import com.webapp.citizen_services_web_app_backend.repository.DepartmentRepository;
@@ -12,10 +11,6 @@ import com.webapp.citizen_services_web_app_backend.repository.UserRepository;
 import com.webapp.citizen_services_web_app_backend.services.ComplaintService;
 import com.webapp.citizen_services_web_app_backend.services.JwtService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
-import com.webapp.citizen_services_web_app_backend.dto.ComplaintRequestDTO;
-import com.webapp.citizen_services_web_app_backend.dto.ComplaintResponseDTO;
-import com.webapp.citizen_services_web_app_backend.services.ComplaintService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -25,38 +20,18 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/complaints")
-@CrossOrigin(origins = {
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "*"
-})
+@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
+@RequiredArgsConstructor
 public class ComplaintController {
 
-    // Dependencies from main branch
     private final ComplaintService complaintService;
     private final ComplaintRepository complaintRepository;
-
-    // Dependencies from branch
     private final UserRepository userRepository;
     private final DepartmentRepository departmentRepository;
     private final JwtService jwtService;
-
-    // Combined constructor – injects all required beans
-    public ComplaintController(ComplaintService complaintService,
-                               ComplaintRepository complaintRepository,
-                               UserRepository userRepository,
-                               DepartmentRepository departmentRepository,
-                               JwtService jwtService) {
-        this.complaintService = complaintService;
-        this.complaintRepository = complaintRepository;
-        this.userRepository = userRepository;
-        this.departmentRepository = departmentRepository;
-        this.jwtService = jwtService;
-    }
 
     // ==================== Main branch endpoints ====================
 
@@ -66,24 +41,6 @@ public class ComplaintController {
             @RequestPart(value = "photo", required = false) MultipartFile photo,
             Authentication authentication) {
 
-        ComplaintResponseDTO saved = complaintService.submitComplaint(dto, photo, authentication);
-
-import java.util.List;
-import java.util.Map;
-
-@RestController
-@RequestMapping("/api/complaints")
-@RequiredArgsConstructor
-public class ComplaintController {
-
-    private final ComplaintService complaintService;
-
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Map<String, Object>> submitComplaint(
-            @RequestPart("data") ComplaintRequestDTO dto,
-            @RequestPart(value = "photo", required = false) MultipartFile photo,
-            Authentication authentication
-    ) {
         ComplaintResponseDTO saved = complaintService.submitComplaint(dto, photo, authentication);
         return ResponseEntity.ok(Map.of(
                 "message", "Complaint submitted successfully",
@@ -95,8 +52,6 @@ public class ComplaintController {
 
     @GetMapping
     public ResponseEntity<List<ComplaintResponseDTO>> getMyComplaints(Authentication authentication) {
-        List<ComplaintResponseDTO> complaints = complaintService.getMyComplaints(authentication);
-        return ResponseEntity.ok(complaints);
         return ResponseEntity.ok(complaintService.getMyComplaints(authentication));
     }
 
@@ -125,7 +80,6 @@ public class ComplaintController {
     @GetMapping("/map")
     public ResponseEntity<List<ComplaintMapDTO>> getComplaintsForMap() {
         List<Complaint> complaints = complaintRepository.findAllWithCoordinates();
-
         List<ComplaintMapDTO> dtos = complaints.stream()
                 .map(c -> new ComplaintMapDTO(
                         c.getId(),
@@ -141,24 +95,20 @@ public class ComplaintController {
                         c.getSubmittedAt()
                 ))
                 .collect(Collectors.toList());
-
         return ResponseEntity.ok(dtos);
     }
 
-    // ==================== Branch endpoints ====================
-
-    @PostMapping
+    // ==================== Legacy branch endpoints (JSON only, no multipart) ====================
+    // Mapped to a different path to avoid conflict with the main POST
+    @PostMapping("/submit-legacy")
     public ResponseEntity<Map<String, Object>> submitComplaintLegacy(
             @RequestBody Map<String, Object> body,
             @RequestHeader("Authorization") String authHeader) {
 
         String token = authHeader.replace("Bearer ", "");
         String email = jwtService.extractUsername(token);
-//        Optional<User> citizen = userRepository.findByEmail(email);
-
         User citizen = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-
 
         Complaint complaint = new Complaint();
         complaint.setTitle(body.get("title").toString());
@@ -168,8 +118,10 @@ public class ComplaintController {
         complaint.setPriority(body.getOrDefault("priority", "MEDIUM").toString().toUpperCase());
         complaint.setCitizen(citizen);
 
-        if (body.containsKey("latitude")) complaint.setLatitude(Double.valueOf(body.get("latitude").toString()));
-        if (body.containsKey("longitude")) complaint.setLongitude(Double.valueOf(body.get("longitude").toString()));
+        if (body.containsKey("latitude"))
+            complaint.setLatitude(Double.valueOf(body.get("latitude").toString()));
+        if (body.containsKey("longitude"))
+            complaint.setLongitude(Double.valueOf(body.get("longitude").toString()));
 
         // Auto-assign to department based on category
         departmentRepository.findByName(complaint.getCategory()).ifPresent(complaint::setDepartment);
@@ -182,13 +134,15 @@ public class ComplaintController {
         return ResponseEntity.ok(resp);
     }
 
-    @GetMapping("/my")
+    @GetMapping("/my-legacy")
     public ResponseEntity<List<Map<String, Object>>> getMyComplaintsLegacy(
             @RequestHeader("Authorization") String authHeader) {
+
         String token = authHeader.replace("Bearer ", "");
         String email = jwtService.extractUsername(token);
-        Optional<User> citizen = userRepository.findByEmail(email);
-        List<Complaint> complaints = complaintRepository.findByCitizenId(citizen.get().getId());
+        User citizen = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        List<Complaint> complaints = complaintRepository.findByCitizenId(citizen.getId());
         return ResponseEntity.ok(complaints.stream().map(this::toMap).collect(Collectors.toList()));
     }
 
@@ -202,15 +156,5 @@ public class ComplaintController {
         m.put("status", c.getStatus());
         m.put("createdAt", c.getCreatedAt() != null ? c.getCreatedAt().toString() : null);
         return m;
-    }
-}
-            @PathVariable Long id,
-            @RequestParam("comment") String comment,
-            @RequestParam(value = "newLocation", required = false) String newLocation,
-            @RequestPart(value = "photo", required = false) MultipartFile photo,
-            Authentication authentication
-    ) {
-        complaintService.addComplaintUpdate(id, comment, newLocation, photo, authentication);
-        return ResponseEntity.ok(Map.of("message", "Update added successfully"));
     }
 }
