@@ -149,6 +149,7 @@ public class ComplaintService {
         Complaint complaint = new Complaint();
         complaint.setUser(user);
         complaint.setReferenceNumber(generateReferenceNumber());
+        complaint.setTitle(buildComplaintTitle(dto));
         complaint.setCategory(dto.getCategory());
         complaint.setLocation(resolveLocation(dto));
         complaint.setDescription(dto.getDescription());
@@ -313,6 +314,22 @@ public class ComplaintService {
         if (dto.getDescription() == null || dto.getDescription().isBlank()) {
             throw new IllegalArgumentException("Description is required");
         }
+    }
+
+    private String buildComplaintTitle(ComplaintRequestDTO dto) {
+        String category = dto.getCategory() == null ? "Complaint" : dto.getCategory().trim();
+        String location = dto.getLocation() == null ? "" : dto.getLocation().trim();
+
+        if (!location.isBlank()) {
+            return category + " - " + location;
+        }
+
+        String description = dto.getDescription() == null ? "" : dto.getDescription().trim();
+        if (!description.isBlank()) {
+            return description.length() <= 80 ? description : description.substring(0, 77) + "...";
+        }
+
+        return category;
     }
 
     private String resolveLocation(ComplaintRequestDTO dto) {
