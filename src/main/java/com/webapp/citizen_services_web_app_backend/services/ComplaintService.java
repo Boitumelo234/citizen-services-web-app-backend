@@ -14,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -144,6 +145,12 @@ public class ComplaintService {
 
         complaint.setStatus(newStatus);
         complaintRepository.save(complaint);
+    }
+
+    public List<Map<String, Object>> getDepartmentStats() {
+        List<Map<String, Object>> stats = complaintRepository.getDepartmentStats();
+        System.out.println("Stats found: " + stats); // This helps you see data in the IntelliJ logs
+        return stats;
     }
 
 }

@@ -97,4 +97,10 @@ public class ComplaintController {
 
         return ResponseEntity.ok(Map.of("message", "Status updated to " + status));
     }
+    // Check that this is exactly how it looks in ComplaintController.java
+    @GetMapping("/stats/departments")
+    public ResponseEntity<List<Map<String, Object>>> getDeptStats() {
+        // This will now be caught by the "/api/complaints/stats/**" rule in SecurityConfig
+        return ResponseEntity.ok(complaintService.getDepartmentStats());
+    }
 }
