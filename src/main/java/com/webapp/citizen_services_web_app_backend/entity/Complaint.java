@@ -23,7 +23,7 @@ public class Complaint {
     private String referenceNumber;
 
     // Title (from branch)
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String title;
 
     // Category
