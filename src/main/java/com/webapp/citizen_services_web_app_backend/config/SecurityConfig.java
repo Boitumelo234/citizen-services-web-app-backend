@@ -50,9 +50,9 @@ public class SecurityConfig {
                         ).permitAll()
 
                         // === ADMIN DASHBOARD ENDPOINTS ===
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")   // ← THIS WAS MISSING
+                        .requestMatchers("/api/admin/**").hasAnyAuthority("ADMIN", "ROLE_ADMIN")   // ← FIXED
 
-                        // Other endpoints you already had
+                        // Other endpoints
                         .requestMatchers("/api/users/**").hasAnyAuthority("ROLE_ADMIN", "ADMIN")
                         .requestMatchers("/api/complaints/**")
                         .hasAnyAuthority("ROLE_CITIZEN", "ROLE_ADMIN", "CITIZEN", "ADMIN")
@@ -112,3 +112,4 @@ public class SecurityConfig {
         };
     }
 }
+

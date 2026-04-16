@@ -2,11 +2,13 @@ package com.webapp.citizen_services_web_app_backend.controller;
 
 import com.webapp.citizen_services_web_app_backend.entity.Complaint;
 import com.webapp.citizen_services_web_app_backend.entity.Department;
+import com.webapp.citizen_services_web_app_backend.entity.SystemSettings;
 import com.webapp.citizen_services_web_app_backend.entity.User;
 import com.webapp.citizen_services_web_app_backend.repository.ComplaintRepository;
 import com.webapp.citizen_services_web_app_backend.repository.DepartmentRepository;
 import com.webapp.citizen_services_web_app_backend.repository.UserRepository;
 import com.webapp.citizen_services_web_app_backend.services.ComplaintService;
+import com.webapp.citizen_services_web_app_backend.repository.SystemSettingsRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,15 +25,18 @@ public class AdminDashboardController {
     private final UserRepository userRepo;
     private final DepartmentRepository departmentRepo;
     private final ComplaintService complaintService;
+    private final SystemSettingsRepository settingsRepository;
 
     public AdminDashboardController(ComplaintRepository complaintRepo,
                                     UserRepository userRepo,
                                     DepartmentRepository departmentRepo,
-                                    ComplaintService complaintService) {
+                                    ComplaintService complaintService,
+                                    SystemSettingsRepository settingsRepository) {
         this.complaintRepo = complaintRepo;
         this.userRepo = userRepo;
         this.departmentRepo = departmentRepo;
         this.complaintService = complaintService;
+        this.settingsRepository = settingsRepository;
     }
 
     // ==================== Your Branch Version (Primary) ====================
@@ -321,13 +326,19 @@ public class AdminDashboardController {
             @RequestParam(defaultValue = "7") int days) {
         LocalDateTime since = LocalDateTime.now().minusDays(days);
         List<Complaint> recent = complaintRepo.findSince(since);
+
+        // Filter out complaints with null category, status, or area to avoid NPE
+        List<Complaint> valid = recent.stream()
+                .filter(c -> c.getCategory() != null && c.getStatus() != null && c.getArea() != null)
+                .collect(Collectors.toList());
+
         List<Complaint> resolved = complaintRepo.findResolvedSince(since);
 
-        Map<String, Long> byCategory = recent.stream()
+        Map<String, Long> byCategory = valid.stream()
                 .collect(Collectors.groupingBy(Complaint::getCategory, Collectors.counting()));
-        Map<String, Long> byStatus = recent.stream()
+        Map<String, Long> byStatus = valid.stream()
                 .collect(Collectors.groupingBy(Complaint::getStatus, Collectors.counting()));
-        Map<String, Long> byArea = recent.stream()
+        Map<String, Long> byArea = valid.stream()
                 .collect(Collectors.groupingBy(Complaint::getArea, Collectors.counting()));
 
         Map<String, Object> report = new LinkedHashMap<>();
@@ -455,4 +466,27 @@ public class AdminDashboardController {
 
         return m;
     }
+
+//    @GetMapping("/settings")
+//    public ResponseEntity<SystemSettings> getSettings() {
+//        // There should be exactly one row with id = 1L
+//        SystemSettings settings = settingsRepository.findById(1L)
+//                .orElseGet(() -> {
+//                    SystemSettings newSettings = new SystemSettings();
+//                    newSettings.setAutoRoutingEnabled(false);
+//                    newSettings.setAdminEmailNotifications(false);
+//                    return settingsRepository.save(newSettings);
+//                });
+//        return ResponseEntity.ok(settings);
+//    }
+//
+//    @PutMapping("/settings")
+//    public ResponseEntity<SystemSettings> updateSettings(@RequestBody SystemSettings updated) {
+//        SystemSettings existing = settingsRepository.findById(1L)
+//                .orElseThrow(() -> new RuntimeException("Settings not found"));
+//        existing.setAutoRoutingEnabled(updated.isAutoRoutingEnabled());
+//        existing.setAdminEmailNotifications(updated.isAdminEmailNotifications());
+//        settingsRepository.save(existing);
+//        return ResponseEntity.ok(existing);
+//    }
 }
