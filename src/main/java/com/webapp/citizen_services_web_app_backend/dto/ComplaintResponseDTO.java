@@ -17,5 +17,11 @@ public class ComplaintResponseDTO {
     private LocalDateTime createdAt;
     private String photoUrl;
 
+    private String assignedToEmail;
+    private String assignedToName;
+    private String title;
+    private String area;
+    private String priority;
+
     private List<ComplaintUpdateDTO> updates = new ArrayList<>();
 }

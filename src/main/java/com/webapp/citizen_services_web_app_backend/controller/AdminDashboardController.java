@@ -179,12 +179,19 @@ public class AdminDashboardController {
             @RequestParam(required = false) String category) {
 
         List<Complaint> complaints;
-        if (status != null) complaints = complaintRepo.findByStatus(status.toUpperCase());
-        else if (priority != null) complaints = complaintRepo.findByPriority(priority.toUpperCase());
-        else if (category != null) complaints = complaintRepo.findByCategory(category.toUpperCase());
-        else complaints = complaintRepo.findAll();
+        if (status != null) {
+            complaints = complaintRepo.findByStatus(status.toUpperCase());
+        } else if (priority != null) {
+            complaints = complaintRepo.findByPriority(priority.toUpperCase());
+        } else if (category != null) {
+            complaints = complaintRepo.findByCategory(category.toUpperCase());
+        } else {
+            complaints = complaintRepo.findAll();
+        }
 
-        return ResponseEntity.ok(complaints.stream().map(this::toComplaintMap).collect(Collectors.toList()));
+        return ResponseEntity.ok(complaints.stream()
+                .map(this::toComplaintMap)
+                .collect(Collectors.toList()));
     }
 
     @GetMapping("/complaints/{id}")
@@ -201,10 +208,15 @@ public class AdminDashboardController {
 
         return complaintRepo.findById(id).map(complaint -> {
             Long staffId = Long.valueOf(body.get("staffId").toString());
-            User staff = userRepo.findById(staffId).orElseThrow();
-            complaint.setAssignedTo(String.valueOf(staff));
+            User staff = userRepo.findById(staffId).orElseThrow(() -> new RuntimeException("Staff not found"));
+
+            complaint.setAssignedToUser(staff);           // Important: set the relationship
+            complaint.setAssignedTo(staff.getEmail());    // Keep string fallback
             complaint.setStatus("ASSIGNED");
-            if (staff.getDepartment() != null) complaint.setDepartment(staff.getDepartment());
+            if (staff.getDepartment() != null) {
+                complaint.setDepartment(staff.getDepartment());
+            }
+
             complaintRepo.save(complaint);
             return ResponseEntity.ok(toComplaintMap(complaint));
         }).orElse(ResponseEntity.notFound().build());
@@ -231,8 +243,7 @@ public class AdminDashboardController {
     }
 
     @GetMapping("/users")
-    public ResponseEntity<List<Map<String, Object>>> getUsers(
-            @RequestParam(required = false) String role) {
+    public ResponseEntity<List<Map<String, Object>>> getUsers(@RequestParam(required = false) String role) {
         List<User> users = role != null ? userRepo.findByRole(role.toUpperCase()) : userRepo.findAll();
         return ResponseEntity.ok(users.stream().map(this::toUserMap).collect(Collectors.toList()));
     }
@@ -256,9 +267,7 @@ public class AdminDashboardController {
     }
 
     @PutMapping("/users/{id}")
-    public ResponseEntity<Map<String, Object>> updateUser(
-            @PathVariable Long id,
-            @RequestBody Map<String, Object> body) {
+    public ResponseEntity<Map<String, Object>> updateUser(@PathVariable Long id, @RequestBody Map<String, Object> body) {
         return userRepo.findById(id).map(user -> {
             if (body.containsKey("fullName")) user.setFullName(body.get("fullName").toString());
             if (body.containsKey("phone")) user.setPhone(body.get("phone").toString());
@@ -305,6 +314,7 @@ public class AdminDashboardController {
         result.put("description", dept.getDescription());
         return ResponseEntity.ok(result);
     }
+
 
     @GetMapping("/reports/summary")
     public ResponseEntity<Map<String, Object>> getReportSummary(
@@ -414,8 +424,9 @@ public class AdminDashboardController {
         m.put("longitude", c.getLongitude());
         m.put("createdAt", c.getCreatedAt() != null ? c.getCreatedAt().toString() : null);
         m.put("resolvedAt", c.getResolvedAt() != null ? c.getResolvedAt().toString() : null);
+        m.put("photoUrl", c.getPhotoUrl());                    // ← Critical for thumbnail
 
-        // Citizen / User field
+        // Citizen info
         if (c.getUser() != null) {
             m.put("citizenId", c.getUser().getId());
             m.put("citizenEmail", c.getUser().getEmail());
@@ -426,16 +437,17 @@ public class AdminDashboardController {
             m.put("citizenName", c.getCitizen().getFullName());
         }
 
-        Object assigned = c.getAssignedTo();
-        if (assigned != null) {
-            if (assigned instanceof User user) {
-                m.put("assignedToId", user.getId());
-                m.put("assignedToName", user.getFullName() != null ? user.getFullName() : user.getEmail());
-            } else {
-                m.put("assignedTo", assigned.toString());
-            }
+        // ASSIGNED STAFF - This is the key fix
+        if (c.getAssignedToUser() != null) {
+            m.put("assignedToId", c.getAssignedToUser().getId());
+            m.put("assignedToEmail", c.getAssignedToUser().getEmail());
+            m.put("assignedToName", c.getAssignedToUser().getFullName());
+        } else if (c.getAssignedTo() != null) {
+            m.put("assignedToEmail", c.getAssignedTo().toString());
+            m.put("assignedTo", c.getAssignedTo().toString());
         }
 
+        // Department
         if (c.getDepartment() != null) {
             m.put("departmentId", c.getDepartment().getId());
             m.put("departmentName", c.getDepartment().getName());
