@@ -1,14 +1,8 @@
 package com.webapp.citizen_services_web_app_backend.controller;
 
-import com.webapp.citizen_services_web_app_backend.entity.Complaint;
-import com.webapp.citizen_services_web_app_backend.entity.Department;
-import com.webapp.citizen_services_web_app_backend.entity.SystemSettings;
-import com.webapp.citizen_services_web_app_backend.entity.User;
-import com.webapp.citizen_services_web_app_backend.repository.ComplaintRepository;
-import com.webapp.citizen_services_web_app_backend.repository.DepartmentRepository;
-import com.webapp.citizen_services_web_app_backend.repository.UserRepository;
+import com.webapp.citizen_services_web_app_backend.entity.*;
+import com.webapp.citizen_services_web_app_backend.repository.*;
 import com.webapp.citizen_services_web_app_backend.services.ComplaintService;
-import com.webapp.citizen_services_web_app_backend.repository.SystemSettingsRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,17 +20,20 @@ public class AdminDashboardController {
     private final DepartmentRepository departmentRepo;
     private final ComplaintService complaintService;
     private final SystemSettingsRepository settingsRepository;
+    private final NotificationRepository notificationRepository;
 
     public AdminDashboardController(ComplaintRepository complaintRepo,
                                     UserRepository userRepo,
                                     DepartmentRepository departmentRepo,
                                     ComplaintService complaintService,
-                                    SystemSettingsRepository settingsRepository) {
+                                    SystemSettingsRepository settingsRepository,
+                                    NotificationRepository notificationRepository) {
         this.complaintRepo = complaintRepo;
         this.userRepo = userRepo;
         this.departmentRepo = departmentRepo;
         this.complaintService = complaintService;
         this.settingsRepository = settingsRepository;
+        this .notificationRepository = notificationRepository;
     }
 
     // ==================== Your Branch Version (Primary) ====================
@@ -223,6 +220,17 @@ public class AdminDashboardController {
             }
 
             complaintRepo.save(complaint);
+
+            Notification notif = new Notification();
+            notif.setUser(staff);                                    // ← ManyToOne User field
+            notif.setType("ASSIGNED");
+            notif.setTitle("New Complaint Assigned");
+            notif.setMessage("Complaint #" + id + " — \"" + complaint.getTitle()
+                    + "\" has been assigned to you.");
+            notif.setRead(false);
+            notificationRepository.save(notif);
+
+
             return ResponseEntity.ok(toComplaintMap(complaint));
         }).orElse(ResponseEntity.notFound().build());
     }
