@@ -21,3 +21,4 @@ public class OverviewController {
         return ResponseEntity.ok(overviewService.getOverview(authentication.getName()));
     }
 }
+

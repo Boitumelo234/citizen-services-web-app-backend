@@ -56,6 +56,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/users/**").hasAnyAuthority("ROLE_ADMIN", "ADMIN")
                         .requestMatchers("/api/complaints/**")
                         .hasAnyAuthority("ROLE_CITIZEN", "ROLE_ADMIN", "CITIZEN", "ADMIN")
+                        .requestMatchers("/api/staff/**").hasRole("STAFF")
 
                         // Everything else requires authentication
                         .anyRequest().authenticated()
