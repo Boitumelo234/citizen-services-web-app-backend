@@ -230,6 +230,17 @@ public class AdminDashboardController {
             notif.setRead(false);
             notificationRepository.save(notif);
 
+            User citizen = complaint.getUser() != null ? complaint.getUser() : complaint.getCitizen();
+            if (citizen != null) {
+                Notification citizenNotif = new Notification();
+                citizenNotif.setUser(citizen);
+                citizenNotif.setType("ASSIGNED");
+                citizenNotif.setMessage("Your complaint #" + id + " (" + complaint.getTitle() + ") has been assigned to a staff member.");
+                citizenNotif.setRead(false);
+                citizenNotif.setCreatedAt(LocalDateTime.now());
+                notificationRepository.save(citizenNotif);
+            }
+
 
             return ResponseEntity.ok(toComplaintMap(complaint));
         }).orElse(ResponseEntity.notFound().build());
@@ -474,6 +485,8 @@ public class AdminDashboardController {
 
         return m;
     }
+
+
 
 //    @GetMapping("/settings")
 //    public ResponseEntity<SystemSettings> getSettings() {
